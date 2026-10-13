@@ -1,0 +1,21 @@
+.DS_Store
+.superpowers/
+
+# Local preview / environment files
+.env
+*.log
+node_modules/
+dist/
+
+# Large demo media is kept out of the GitHub upload for now.
+/video/**/*.mp4
+/video/**/*.mov
+/video/**/*.m4v
+/video/**/*.avi
+/video/**/*.webm
+
+# Keep uploadable placeholders and notes inside the video tree.
+!/video/README.md
+!/video/**/.gitkeep
+
+paper_latex/

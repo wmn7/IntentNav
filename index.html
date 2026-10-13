@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="IntentNav project page: learning spatial-visual object navigation from human demonstrations.">
+  <meta name="keywords" content="IntentNav, Spatial-Visual Object Navigation, Embodied AI, BEV, Human Demonstrations, Waypoint Navigation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IntentNav: Learning Spatial-Visual Object Navigation from Human Demonstrations</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/index.css?v=20260526-intentnav">
+  <script defer src="./static/js/index.js?v=20260526-keymoments"></script>
+</head>
+
+<body>
+  <nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="#top"><strong>IntentNav</strong></a>
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+    <div class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="#overview">Overview</a>
+        <a class="navbar-item" href="#approach">Approach</a>
+        <a class="navbar-item" href="#demos">Demos</a>
+        <a class="navbar-item" href="#results">Results</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero intent-hero" id="top">
+    <div class="hero-body">
+      <div class="container is-max-desktop has-text-centered">
+        <h1 class="title is-2 publication-title">
+          IntentNav: Learning Spatial-Visual Object Navigation from Human Demonstrations
+        </h1>
+
+        <div class="publication-links">
+          <a class="button is-normal is-rounded is-dark" href="#" aria-label="Paper link coming soon">
+            <span>Paper</span>
+            <span>Coming Soon</span>
+          </a>
+          <a class="button is-normal is-rounded is-dark" href="#" aria-label="Code link coming soon">
+            <span>Code</span>
+            <span>Coming Soon</span>
+          </a>
+          <a class="button is-normal is-rounded" href="#demos">
+            <span>Watch Demos</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero is-small teaser-section">
+    <div class="hero-body">
+      <div class="container">
+        <div class="teaser-video-shell">
+          <iframe id="teaser-video" src="https://www.youtube.com/embed/MS10ASQFA18?enablejsapi=1&playsinline=1&rel=0" title="Human / G1 Demo 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+        </div>
+
+        <div class="video-storyboard">
+          <div class="storyboard-title">
+            Key Moments
+            <span class="storyboard-subtitle">- Click image to jump &bull; Click 🔍 to zoom</span>
+          </div>
+          <div class="storyboard-frames">
+            <div class="storyboard-frame" data-target-video="teaser-video" data-youtube-id="MS10ASQFA18" data-time="8">
+              <div class="storyboard-image">
+                <img src="https://img.youtube.com/vi/MS10ASQFA18/1.jpg" alt="Geometry-aware cubicle-by-cubicle search">
+                <button class="storyboard-zoom" type="button" aria-label="Zoom key moment 1">🔍</button>
+              </div>
+              <span class="frame-time">0:08</span>
+              <div class="frame-description">Geometry-aware search: the agent probes each small region one by one, human-like &mdash; glancing into a cubicle and moving on without exhaustively clearing it.</div>
+            </div>
+            <div class="storyboard-frame" data-target-video="teaser-video" data-youtube-id="MS10ASQFA18" data-time="16">
+              <div class="storyboard-image">
+                <img src="https://img.youtube.com/vi/MS10ASQFA18/2.jpg" alt="Looking around to avoid redundant revisits">
+                <button class="storyboard-zoom" type="button" aria-label="Zoom key moment 2">🔍</button>
+              </div>
+              <span class="frame-time">0:16</span>
+              <div class="frame-description">Active looking-around behavior tracks what has been seen, avoiding redundant revisits to the same regions.</div>
+            </div>
+            <div class="storyboard-frame" data-target-video="teaser-video" data-youtube-id="MS10ASQFA18" data-time="24">
+              <div class="storyboard-image">
+                <img src="https://img.youtube.com/vi/MS10ASQFA18/3.jpg" alt="Target found, walking decisively toward it">
+                <button class="storyboard-zoom" type="button" aria-label="Zoom key moment 3">🔍</button>
+              </div>
+              <span class="frame-time">0:24</span>
+              <div class="frame-description">The target is found: exploration ends and the agent commits, walking decisively toward the object.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section overview-section" id="overview">
+    <div class="container">
+      <div class="section-heading has-text-centered">
+        <div class="section-kicker">Overview</div>
+        <h2 class="title is-3">Learning human-like object search in a unified BEV decision space.</h2>
+        <p class="section-lead">
+          ObjectNav asks a robot to find an unseen target in an unknown home under partial observability. The core difficulty is deciding <em>where to explore next</em> over a long horizon &mdash; long before the target is ever observed.
+        </p>
+      </div>
+
+      <div class="overview-grid">
+        <div class="overview-card">
+          <span class="story-tag">Why</span>
+          <h3>VLM policies lose either space or visual detail</h3>
+          <p>First-person RGB policies keep appearance but discard spatial structure and act reactively over short horizons; text map summaries keep layout but flatten geometry and fine-grained visual cues. Both drift into repetitive search &mdash; turning in place, backtracking, and revisiting the same rooms.</p>
+        </div>
+        <div class="overview-card">
+          <span class="story-tag">How</span>
+          <h3>Recover search intent from human demonstrations</h3>
+          <p>Frontier-based Human-Intent Labeling looks ahead in low-level human trajectories and labels the frontier that best explains the demonstrator's future search direction &mdash; turning raw human actions into high-level BEV waypoint supervision, with no oracle shortest paths.</p>
+        </div>
+        <div class="overview-card">
+          <span class="story-tag">What</span>
+          <h3>BEV-grounded spatial-visual candidate policy</h3>
+          <p>A VLM compares frontier and target candidates in one BEV decision space, each grounded by its egocentric visual memory and agent-centric geometry, then emits a reserved candidate-ID waypoint that transfers across embodiments.</p>
+        </div>
+      </div>
+
+      <figure class="method-figure">
+        <img src="./static/images/arch-overview.png?v=20260608" alt="IntentNav architecture: frontier-based human-intent labeling and a BEV-grounded spatial-visual candidate policy">
+        <figcaption>
+          <strong>IntentNav architecture.</strong>
+          <strong>Left:</strong> human rollouts update a persistent BEV map, and Frontier-based Human-Intent Labeling recovers the intended frontier as candidate-level supervision by looking ahead at how frontiers evolve in the future.
+          <strong>Right:</strong> the VLM fuses the BEV decision space, candidate-aligned egocentric visual memories, and agent-centric geometry, then predicts a reserved candidate-ID token as the next waypoint.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section approach-section" id="approach">
+    <div class="container">
+      <div class="section-heading has-text-centered">
+        <div class="section-kicker">Key Contributions</div>
+        <h2 class="title is-3">Three ideas that make search human-like and transferable.</h2>
+      </div>
+
+      <div class="contrib-grid">
+        <div class="contrib-card">
+          <span class="contrib-number">1</span>
+          <h3>Frontier-based Human-Intent Labeling</h3>
+          <p>We replay Habitat-Web human ObjectNav demonstrations and convert their low-level actions into candidate-level waypoint labels. When a target is verified we supervise it directly; otherwise we infer intent from how frontiers evolve, labeling the frontier the demonstrator actually committed to.</p>
+          <ul class="contrib-highlights">
+            <li>23,767 human episodes &rarr; 2.36M candidate-level samples</li>
+            <li>No oracle shortest-path supervision</li>
+          </ul>
+        </div>
+        <div class="contrib-card">
+          <span class="contrib-number">2</span>
+          <h3>BEV-Grounded Spatial-Visual Policy</h3>
+          <p>Exploration and target commitment are unified as selection over BEV candidates. Each candidate carries its first-observed egocentric visual memory and an agent-centric geometry feature, and an Intent-Aligned Objective smooths frontier choices by direction while keeping hard commitment to verified targets.</p>
+          <ul class="contrib-highlights">
+            <li>32 reserved candidate-ID tokens &mdash; selection, not free-form text</li>
+            <li>Angular soft target for directionally consistent search</li>
+          </ul>
+        </div>
+        <div class="contrib-card">
+          <span class="contrib-number">3</span>
+          <h3>State-of-the-Art &amp; Zero-Shot Transfer</h3>
+          <p>Trained only on MP3D demonstrations, IntentNav reaches the best SR and SPL among learning-based methods on MP3D, HM3D-v1, and HM3D-v2. The same checkpoint and candidate-level BEV interface transfer with no VLM fine-tuning across three physical robots.</p>
+          <ul class="contrib-highlights">
+            <li>82.2% SR on HM3D-v2 &bull; 70.5% on HM3D-v1</li>
+            <li>Wheeled, Go2 quadruped, G1 humanoid &bull; ~0.8s / decision</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="demos">
+    <div class="container">
+      <div class="section-heading has-text-centered">
+        <div class="section-kicker">Real-World Demos</div>
+        <h2 class="title is-3">One waypoint policy, multiple embodiments.</h2>
+      </div>
+
+      <div class="embodiment-grid" style="margin-bottom: 1.4rem;">
+        <div class="embodiment-card">
+          <h3>Wheeled Robot</h3>
+          <p>Executes IntentNav waypoint decisions through a mobile base controller.</p>
+        </div>
+        <div class="embodiment-card">
+          <h3>Unitree Go2 Quadruped</h3>
+          <p>Uses the same high-level waypoint interface on a legged platform.</p>
+        </div>
+        <div class="embodiment-card">
+          <h3>Unitree G1 Humanoid</h3>
+          <p>Uses the same high-level waypoint interface on a humanoid platform.</p>
+        </div>
+      </div>
+
+      <div class="demo-toolbar" aria-label="Demo filters">
+        <button class="filter-button" data-demo-filter="wheel">Wheeled</button>
+        <button class="filter-button" data-demo-filter="go2">Go2 Quadruped</button>
+        <button class="filter-button" data-demo-filter="human">Human / G1</button>
+        <button class="filter-button" data-demo-filter="all">All</button>
+      </div>
+
+      <div class="demo-grid">
+        <article class="demo-card" data-demo-kind="wheel">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/svC7fRQ2as0" title="Wheeled Robot Demo 4" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Wheeled Robot</span>
+            <h3>Long-Horizon Indoor Search</h3>
+            <p>Within a relatively short path, the robot sweeps an unknown room almost in a full loop, achieving broad <span class="highlight-waypoint">spatial coverage</span> of the space before moving on.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="wheel">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/hU_ByQniFxA" title="Wheeled Robot Demo 14" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Wheeled Robot</span>
+            <h3>Local Scanning</h3>
+            <p>At an informative viewpoint the robot <span class="highlight-frontier">scans in place</span>, rotating to take in its surroundings and gather visual evidence before deciding where to search next.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="wheel">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/eWaxmcOjyBM" title="Wheeled Robot Demo 13" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Wheeled Robot</span>
+            <h3>Probe, Back Out, Commit</h3>
+            <p>A V-shaped <span class="highlight-frontier">peeking</span> motion &mdash; walking into a region, finding nothing, and backing out &mdash; before <span class="highlight-target">semantic evidence</span> of the target appears and the robot commits toward it.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="wheel">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/nz_TN7HV-sA" title="Wheeled Robot Demo 10" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Wheeled Robot</span>
+            <h3>Semantic Common Sense</h3>
+            <p>The open space clearly holds no instance of the target, so the policy skips it and heads straight to another room where the object is <span class="highlight-target">semantically more likely</span> to be found.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="wheel">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/34ikeZQOTw4" title="Wheeled Robot Demo 8" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Wheeled Robot</span>
+            <h3>Unified Exploration &amp; Commitment</h3>
+            <p><span class="highlight-frontier">Frontier</span> exploration and <span class="highlight-target">target</span> commitment are unified in one BEV decision space, so the robot keeps searching and switches to decisive approach the moment the target is verified.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="wheel">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/wVQjJYpGf5k" title="Wheeled Robot Demo 6" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Wheeled Robot</span>
+            <h3>Cross-Room Object Navigation</h3>
+            <p>Carrying its BEV spatial memory across doorways, the robot searches <span class="highlight-waypoint">room to room</span> until the target appears.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="go2">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/BMDZuOZbPXo" title="Unitree Go2 Demo 2" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Unitree Go2</span>
+            <h3>Zero-Shot Quadruped Transfer</h3>
+            <p>The same MP3D-trained checkpoint drives the Go2 with <span class="highlight-transfer">no VLM fine-tuning</span> &mdash; only the candidate-level BEV waypoint interface, while platform-specific local control handles legged locomotion.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="go2">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/ShsOVdGLqCc" title="Unitree Go2 Demo 4" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Unitree Go2</span>
+            <h3>Compact 2B, Onboard</h3>
+            <p>IntentNav is a compact <span class="highlight-transfer">2B VLM</span> (InternVL3-2B) that runs on a single onboard laptop GPU at roughly 0.8&nbsp;s per decision &mdash; light enough for real-time legged deployment.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="go2">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/On_QMeI63hs" title="Unitree Go2 Demo 5" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Unitree Go2</span>
+            <h3>Very Long-Horizon Exploration</h3>
+            <p>A single extended episode: the quadruped explores a large space over a <span class="highlight-waypoint">very long horizon</span>, sustaining coherent directed search without collapsing into repetitive backtracking.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="go2">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/MaaiBUubhFc" title="Unitree Go2 Demo 6" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Unitree Go2</span>
+            <h3>Embodiment-Agnostic Interface</h3>
+            <p>Decoupling high-level candidate selection from low-level control lets the <span class="highlight-transfer">identical waypoint policy</span> run on legged hardware exactly as it does on wheels.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="go2">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/aQS4WBPyqfg" title="Unitree Go2 Demo 8" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Unitree Go2</span>
+            <h3>What Is a Candidate?</h3>
+            <p>Each decision is a choice among <span class="highlight-frontier">frontier candidates</span> on the boundary of explored and unknown space, plus <span class="highlight-target">target candidates</span> from verified detections &mdash; all compared in one BEV space.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="go2">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/1XHkZBe3RMo" title="Unitree Go2 Demo 9" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Unitree Go2</span>
+            <h3>Low-Frequency Querying</h3>
+            <p>Instead of repeated VLM calls, the policy predicts a <span class="highlight-waypoint">candidate-ID</span> only as the robot nears its waypoint, so 2B inference overlaps with motion and never pauses the robot.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="human">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/MS10ASQFA18" title="Human / G1 Demo 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Human / Unitree G1</span>
+            <h3>Zero-Shot Humanoid Transfer</h3>
+            <p>The hardest embodiment gap: the same MP3D-trained checkpoint drives a <span class="highlight-transfer">bipedal humanoid</span> with no VLM fine-tuning, through the same candidate-level BEV waypoint interface.</p>
+          </div>
+        </article>
+
+        <article class="demo-card" data-demo-kind="human">
+          <div class="youtube-embed">
+            <iframe src="https://www.youtube.com/embed/zw50ubyonVA" title="Human / G1 Demo 2" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="demo-card-body">
+            <span class="demo-meta">Human / Unitree G1</span>
+            <h3>Decisive Target Commitment</h3>
+            <p>Once the target is verified, the humanoid stops exploring and walks <span class="highlight-target">straight to the object</span> &mdash; the high-level policy is unchanged while the body controller executes each waypoint.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="storyboard-modal" id="storyboard-modal" aria-hidden="true">
+    <button class="storyboard-modal-close" type="button" aria-label="Close zoomed key moment">×</button>
+    <div class="storyboard-modal-content">
+      <img id="storyboard-modal-image" alt="Zoomed key moment">
+      <div class="storyboard-modal-fallback">Add an image to this key moment to enable zoom preview.</div>
+    </div>
+  </div>
+
+  <section class="section hero is-light" id="results">
+    <div class="container">
+      <div class="section-heading has-text-centered">
+        <div class="section-kicker">Benchmark Results</div>
+        <h2 class="title is-3">Detailed comparison across training regimes and datasets.</h2>
+      </div>
+
+      <div class="paper-table result-table-shell">
+        <p class="result-caption">
+          Results are reported on MP3D-Val, HM3D (v0.1), and HM3D (v0.2) for fair comparison with prior work.
+        </p>
+        <div class="table-container">
+          <table class="table result-table" data-result-table="full">
+            <thead>
+              <tr>
+                <th rowspan="2">Method</th>
+                <th rowspan="2">Training Regime</th>
+                <th colspan="2">MP3D-Val</th>
+                <th colspan="2">HM3D (v0.1)</th>
+                <th colspan="2">HM3D (v0.2)</th>
+              </tr>
+              <tr>
+                <th>SR (%) &uarr;</th>
+                <th>SPL (%) &uarr;</th>
+                <th>SR (%) &uarr;</th>
+                <th>SPL (%) &uarr;</th>
+                <th>SR (%) &uarr;</th>
+                <th>SPL (%) &uarr;</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="result-group-row">
+                <td colspan="8">Training-free methods</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>VLFM</td>
+                <td>Training-free</td>
+                <td>36.4</td><td>17.5</td>
+                <td>52.5</td><td>30.4</td>
+                <td>63.5</td><td>32.5</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>SG-Nav-GPT</td>
+                <td>Training-free</td>
+                <td>40.2</td><td>16.0</td>
+                <td>54.0</td><td>24.9</td>
+                <td>49.6</td><td>25.5</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>OpenFMNav</td>
+                <td>Training-free</td>
+                <td>37.2</td><td>15.7</td>
+                <td>54.9</td><td>24.4</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>TriHelper</td>
+                <td>Training-free</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>56.5</td><td>25.3</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>BeliefMapNav</td>
+                <td>Training-free</td>
+                <td>37.3</td><td>17.6</td>
+                <td>61.4</td><td>30.4</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>ApexNav</td>
+                <td>Training-free</td>
+                <td>39.2</td><td>17.8</td>
+                <td>59.6</td><td>33.0</td>
+                <td>76.2</td><td>38.0</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>WMNav</td>
+                <td>Training-free</td>
+                <td>45.4</td><td>17.2</td>
+                <td>58.1</td><td>31.2</td>
+                <td>72.2</td><td>33.3</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>PIGEON</td>
+                <td>Training-free</td>
+                <td>41.6</td><td>14.4</td>
+                <td>57.9</td><td>32.3</td>
+                <td>79.2</td><td>36.8</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>STRIVE</td>
+                <td>Training-free</td>
+                <td>52.3</td><td class="best-result">23.1</td>
+                <td>62.9</td><td>34.2</td>
+                <td>79.6</td><td class="best-result">38.7</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>SysNav</td>
+                <td>Training-free</td>
+                <td>50.7</td><td>18.1</td>
+                <td>63.7</td><td>30.5</td>
+                <td>80.8</td><td>37.2</td>
+              </tr>
+
+              <tr class="result-group-row">
+                <td colspan="8">Learning-based methods</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>DD-PPO</td>
+                <td>RL</td>
+                <td>21.6</td><td>8.7</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>27.9</td><td>14.2</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>Habitat-Web</td>
+                <td>Supervised</td>
+                <td>14.6*</td><td>4.94*</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>ZSON</td>
+                <td>Supervised</td>
+                <td>15.3</td><td>4.8</td>
+                <td>25.5</td><td>12.6</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>Navid</td>
+                <td>Supervised</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>32.5</td><td>21.6</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>PixNav</td>
+                <td>Supervised</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>37.9</td><td>20.5</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>ESC</td>
+                <td>Supervised</td>
+                <td>28.7</td><td>14.2</td>
+                <td>39.2</td><td>22.3</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>PONI</td>
+                <td>Supervised</td>
+                <td>31.8</td><td>12.1</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>SemExp</td>
+                <td>Supervised</td>
+                <td>36.0</td><td>14.4</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>CompassNav</td>
+                <td>Supervised</td>
+                <td>42.0</td><td>17.5</td>
+                <td>56.6</td><td>27.6</td>
+                <td class="missing">-</td><td class="missing">-</td>
+              </tr>
+
+              <tr class="result-group-row">
+                <td colspan="8">Generic policies</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>UniGoal</td>
+                <td>Generic</td>
+                <td>41.0</td><td>16.4</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>54.5</td><td>25.1</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>Uni-Navid</td>
+                <td>Generic</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>73.7</td><td>37.1</td>
+              </tr>
+              <tr class="result-method-row">
+                <td>OmniNav</td>
+                <td>Generic</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td class="missing">-</td><td class="missing">-</td>
+                <td>56.1</td><td>30.0</td>
+              </tr>
+
+              <tr class="result-group-row result-ours-divider">
+                <td colspan="8">Ours</td>
+              </tr>
+              <tr class="result-method-row result-ours-row">
+                <td>IntentNav (Ours)</td>
+                <td>Supervised</td>
+                <td class="best-result">53.8</td><td class="best-result">23.1</td>
+                <td class="best-result">70.5</td><td class="best-result">34.6</td>
+                <td class="best-result">82.2</td><td>38.5</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>This website is adapted from the CMU-VLN project page structure.</p>
+    </div>
+  </footer>
+</body>
+</html>
