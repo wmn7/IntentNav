@@ -1,130 +1,182 @@
-window.HELP_IMPROVE_VIDEOJS = false;
+(() => {
+  const players = new Map();
+  const filterButtons = [...document.querySelectorAll('[data-demo-filter]')];
+  const demoCards = [...document.querySelectorAll('[data-demo-kind]')];
+  let youtubeAPI;
 
-function pauseOtherVideos(activeVideo) {
-  document.querySelectorAll('video').forEach((video) => {
-    if (video !== activeVideo && !video.paused) {
-      video.pause();
-    }
-  });
-}
+  function loadYouTubeAPI() {
+    if (window.YT?.Player) return Promise.resolve(window.YT);
+    if (youtubeAPI) return youtubeAPI;
 
-function setActiveDemo(filter) {
-  document.querySelectorAll('[data-demo-filter]').forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.demoFilter === filter);
-  });
-
-  document.querySelectorAll('[data-demo-kind]').forEach((card) => {
-    const visible = filter === 'all' || card.dataset.demoKind === filter;
-    card.hidden = !visible;
-  });
-}
-
-function buildYouTubeEmbedUrl(videoId, startTime = 0, autoplay = false) {
-  const url = new URL(`https://www.youtube.com/embed/${videoId}`);
-  url.searchParams.set('enablejsapi', '1');
-  url.searchParams.set('playsinline', '1');
-  url.searchParams.set('rel', '0');
-  if (startTime > 0) url.searchParams.set('start', String(Math.floor(startTime)));
-  if (autoplay) {
-    url.searchParams.set('autoplay', '1');
-    url.searchParams.set('mute', '1');
-  }
-  return url.toString();
-}
-
-function initStoryboards() {
-  const modal = document.getElementById('storyboard-modal');
-  const modalContent = modal?.querySelector('.storyboard-modal-content');
-  const modalImage = document.getElementById('storyboard-modal-image');
-  const modalClose = modal?.querySelector('.storyboard-modal-close');
-
-  document.querySelectorAll('.storyboard-frame').forEach((frame) => {
-    frame.addEventListener('click', () => {
-      const target = document.getElementById(frame.dataset.targetVideo);
-      const time = Number(frame.dataset.time || 0);
-      if (target instanceof HTMLVideoElement) {
-        target.currentTime = time;
-        target.play().catch(() => {});
-      } else if (target instanceof HTMLIFrameElement && target.src.includes('youtube.com/embed/')) {
-        const youtubeId = frame.dataset.youtubeId;
-        const videoId = youtubeId || target.src.split('/embed/')[1]?.split(/[?&]/)[0];
-        if (videoId) target.src = buildYouTubeEmbedUrl(videoId, Math.max(0, time), true);
-      }
+    youtubeAPI = new Promise((resolve, reject) => {
+      window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      script.addEventListener('error', () => {
+        script.remove();
+        youtubeAPI = null;
+        reject(new Error('YouTube player API could not be loaded.'));
+      }, { once: true });
+      document.head.append(script);
     });
-
-    const zoom = frame.querySelector('.storyboard-zoom');
-    zoom?.addEventListener('click', (event) => {
-      event.stopPropagation();
-      if (!modal || !modalContent || !modalImage) return;
-
-      const image = frame.querySelector('.storyboard-image img');
-      if (image?.getAttribute('src')) {
-        modalImage.src = image.src;
-        modalImage.alt = image.alt || 'Zoomed key moment';
-        modalContent.classList.add('has-image');
-      } else {
-        modalImage.removeAttribute('src');
-        modalContent.classList.remove('has-image');
-      }
-
-      modal.classList.add('is-active');
-      modal.setAttribute('aria-hidden', 'false');
-    });
-  });
-
-  function closeModal() {
-    if (!modal) return;
-    modal.classList.remove('is-active');
-    modal.setAttribute('aria-hidden', 'true');
+    return youtubeAPI;
   }
 
-  modalClose?.addEventListener('click', closeModal);
-  modal?.addEventListener('click', (event) => {
-    if (event.target === modal) closeModal();
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeModal();
-  });
-}
+  function pauseOtherPlayers(activePlayer) {
+    players.forEach((record) => {
+      if (record.ready && record.player !== activePlayer) record.player.pauseVideo();
+    });
+  }
 
-function initVideoFallbacks() {
-  document.querySelectorAll('video').forEach((video) => {
-    const source = video.querySelector('source');
+  function ensurePlayer(iframe) {
+    if (players.has(iframe)) return players.get(iframe);
 
-    function showFallback() {
-      if (video.dataset.fallbackHandled === 'true') return;
-      if (!video.error && video.networkState !== HTMLMediaElement.NETWORK_NO_SOURCE) return;
+    const record = { player: null, ready: false, seekRequest: 0 };
+    players.set(iframe, record);
+    record.loaded = loadYouTubeAPI().then((YT) => new Promise((resolve) => {
+      const url = new URL(iframe.src);
+      url.searchParams.set('enablejsapi', '1');
+      url.searchParams.set('origin', window.location.origin);
+      iframe.src = url.toString();
+      record.player = new YT.Player(iframe, {
+        events: {
+          onReady(event) {
+            record.player = event.target;
+            record.ready = true;
+            if (iframe.closest('[data-demo-kind]')?.hidden) record.player.pauseVideo();
+            resolve(record.player);
+          },
+          onStateChange(event) {
+            if (event.data !== YT.PlayerState.PLAYING) return;
+            if (iframe.closest('[data-demo-kind]')?.hidden) {
+              event.target.pauseVideo();
+            } else {
+              pauseOtherPlayers(event.target);
+            }
+          }
+        }
+      });
+    })).catch((error) => {
+      players.delete(iframe);
+      console.warn(error.message);
+      return null;
+    });
+    return record;
+  }
 
-      video.dataset.fallbackHandled = 'true';
-      const fallback = document.createElement('div');
-      fallback.className = 'video-unavailable';
-      fallback.innerHTML = '<strong>Video coming soon</strong><span>Demo media will be added after upload.</span>';
-      video.replaceWith(fallback);
+  async function seekVideo(iframe, time) {
+    const record = ensurePlayer(iframe);
+    const request = ++record.seekRequest;
+    const player = await record.loaded;
+    if (!player || request !== record.seekRequest) return;
+    pauseOtherPlayers(player);
+    player.seekTo(time, true);
+    player.playVideo();
+  }
+
+  function initPlayers() {
+    const iframes = document.querySelectorAll('iframe[src^="https://www.youtube.com/embed/"]');
+    if (!('IntersectionObserver' in window)) {
+      iframes.forEach(ensurePlayer);
+      return;
     }
 
-    video.addEventListener('error', showFallback);
-    source?.addEventListener('error', showFallback);
-    window.setTimeout(showFallback, 1800);
-  });
-}
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        ensurePlayer(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: '200px' });
+    iframes.forEach((iframe) => observer.observe(iframe));
+  }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.navbar-burger').forEach((burger) => {
+  function setActiveDemo(filter) {
+    filterButtons.forEach((button) => {
+      const active = button.dataset.demoFilter === filter;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+
+    demoCards.forEach((card) => {
+      const visible = filter === 'all' || card.dataset.demoKind === filter;
+      if (!visible) {
+        card.querySelectorAll('iframe').forEach((iframe) => {
+          const record = players.get(iframe);
+          if (record?.ready) record.player.pauseVideo();
+        });
+      }
+      card.hidden = !visible;
+    });
+  }
+
+  function initNavigation() {
+    const burger = document.querySelector('.navbar-burger');
+    const menu = document.getElementById(burger?.getAttribute('aria-controls'));
+    if (!burger || !menu) return;
+
+    function setExpanded(expanded) {
+      burger.classList.toggle('is-active', expanded);
+      menu.classList.toggle('is-active', expanded);
+      burger.setAttribute('aria-expanded', String(expanded));
+    }
+
     burger.addEventListener('click', () => {
-      burger.classList.toggle('is-active');
-      document.querySelector('.navbar-menu')?.classList.toggle('is-active');
+      setExpanded(burger.getAttribute('aria-expanded') !== 'true');
     });
-  });
+    menu.addEventListener('click', (event) => {
+      if (event.target.closest('a[href^="#"]')) setExpanded(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && burger.getAttribute('aria-expanded') === 'true') {
+        setExpanded(false);
+        burger.focus();
+      }
+    });
+  }
 
-  document.querySelectorAll('video').forEach((video) => {
-    video.addEventListener('play', () => pauseOtherVideos(video));
-  });
+  function initStoryboards() {
+    const modal = document.getElementById('storyboard-modal');
+    const modalContent = modal?.querySelector('.storyboard-modal-content');
+    const modalImage = document.getElementById('storyboard-modal-image');
+    const modalClose = modal?.querySelector('.storyboard-modal-close');
+    let previousFocus;
 
-  document.querySelectorAll('[data-demo-filter]').forEach((button) => {
+    document.querySelectorAll('.storyboard-frame').forEach((frame) => {
+      frame.querySelector('.storyboard-seek')?.addEventListener('click', () => {
+        const target = document.getElementById(frame.dataset.targetVideo);
+        const time = Number(frame.dataset.time);
+        if (target && Number.isFinite(time)) seekVideo(target, Math.max(0, time));
+      });
+
+      frame.querySelector('.storyboard-zoom')?.addEventListener('click', () => {
+        const image = frame.querySelector('.storyboard-image img');
+        if (!modal || !modalContent || !modalImage || !image) return;
+        modalImage.src = image.src;
+        modalImage.alt = image.alt;
+        modalContent.classList.add('has-image');
+        previousFocus = document.activeElement;
+        modal.showModal();
+        document.documentElement.classList.add('has-modal');
+      });
+    });
+
+    modalClose?.addEventListener('click', () => modal.close());
+    modal?.addEventListener('click', (event) => {
+      if (event.target === modal) modal.close();
+    });
+    modal?.addEventListener('close', () => {
+      document.documentElement.classList.remove('has-modal');
+      previousFocus?.focus();
+    });
+  }
+
+  initNavigation();
+  initStoryboards();
+  filterButtons.forEach((button) => {
     button.addEventListener('click', () => setActiveDemo(button.dataset.demoFilter));
   });
-
-  initStoryboards();
-  initVideoFallbacks();
   setActiveDemo('wheel');
-});
+  initPlayers();
+})();

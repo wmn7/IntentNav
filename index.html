@@ -8,23 +8,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IntentNav: Learning Spatial-Visual Object Navigation from Human Demonstrations</title>
 
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./static/css/bulma.min.css">
-  <link rel="stylesheet" href="./static/css/index.css?v=20260526-intentnav">
-  <script defer src="./static/js/index.js?v=20260526-keymoments"></script>
+  <link rel="stylesheet" href="./static/css/index.css?v=20261013-authors">
+  <script defer src="./static/js/index.js?v=20261013-interactions"></script>
 </head>
 
 <body>
   <nav class="navbar" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
       <a class="navbar-item" href="#top"><strong>IntentNav</strong></a>
-      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+      <button type="button" class="navbar-burger" aria-label="menu" aria-expanded="false" aria-controls="navbar-menu">
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
-      </a>
+      </button>
     </div>
-    <div class="navbar-menu">
+    <div class="navbar-menu" id="navbar-menu">
       <div class="navbar-start">
         <a class="navbar-item" href="#overview">Overview</a>
         <a class="navbar-item" href="#approach">Approach</a>
@@ -40,6 +42,41 @@
         <h1 class="title is-2 publication-title">
           IntentNav: Learning Spatial-Visual Object Navigation from Human Demonstrations
         </h1>
+
+        <div class="publication-credits">
+          <div class="publication-authors" aria-label="Authors">
+            <p class="publication-author-row">
+              <span class="publication-author">Yuxin Cai<sup>1,2,4,*</sup></span>
+              <span class="publication-author">Zongtai Li<sup>2,*</sup></span>
+              <span class="publication-author">Maonan Wang<sup>3</sup></span>
+              <span class="publication-author">Muyi Bao<sup>2</sup></span>
+              <span class="publication-author">Haokun Zhu<sup>2</sup></span>
+              <span class="publication-author">Ruofei Bai<sup>1,4</sup></span>
+            </p>
+            <p class="publication-author-row">
+              <span class="publication-author">Ding Zhao<sup>2</sup></span>
+              <span class="publication-author">Zirui Li<sup>1</sup></span>
+              <span class="publication-author">Wenshan Wang<sup>2</sup></span>
+              <span class="publication-author">Wei-Yun Yau<sup>4</sup></span>
+              <span class="publication-author">Ji Zhang<sup>2</sup></span>
+              <span class="publication-author">Chen Lv<sup>1,†</sup></span>
+            </p>
+          </div>
+          <div class="publication-affiliations" aria-label="Affiliations">
+            <p class="publication-affiliation-row">
+              <span><sup>1</sup> Nanyang Technological University</span>
+              <span><sup>3</sup> The Chinese University of Hong Kong</span>
+            </p>
+            <p class="publication-affiliation-row">
+              <span><sup>2</sup> Carnegie Mellon University</span>
+              <span><sup>4</sup> A*STAR Institute for Infocomm Research (I2R)</span>
+            </p>
+          </div>
+          <p class="publication-author-notes">
+            <span><sup>*</sup> Equal contribution.</span>
+            <span><sup>†</sup> Corresponding author.</span>
+          </p>
+        </div>
 
         <div class="publication-links">
           <a class="button is-normal is-rounded is-dark" href="https://arxiv.org/abs/2606.08029" target="_blank" rel="noopener noreferrer" aria-label="Read paper on arXiv">
@@ -70,7 +107,8 @@
             <span class="storyboard-subtitle">- Click image to jump &bull; Click 🔍 to zoom</span>
           </div>
           <div class="storyboard-frames">
-            <div class="storyboard-frame" data-target-video="teaser-video" data-youtube-id="MS10ASQFA18" data-time="8">
+            <div class="storyboard-frame" data-target-video="teaser-video" data-time="8">
+              <button class="storyboard-seek" type="button" aria-label="Play key moment at 0:08"></button>
               <div class="storyboard-image">
                 <img src="https://img.youtube.com/vi/MS10ASQFA18/1.jpg" alt="Geometry-aware cubicle-by-cubicle search">
                 <button class="storyboard-zoom" type="button" aria-label="Zoom key moment 1">🔍</button>
@@ -78,7 +116,8 @@
               <span class="frame-time">0:08</span>
               <div class="frame-description">Geometry-aware search: the agent probes each small region one by one, human-like &mdash; glancing into a cubicle and moving on without exhaustively clearing it.</div>
             </div>
-            <div class="storyboard-frame" data-target-video="teaser-video" data-youtube-id="MS10ASQFA18" data-time="16">
+            <div class="storyboard-frame" data-target-video="teaser-video" data-time="16">
+              <button class="storyboard-seek" type="button" aria-label="Play key moment at 0:16"></button>
               <div class="storyboard-image">
                 <img src="https://img.youtube.com/vi/MS10ASQFA18/2.jpg" alt="Looking around to avoid redundant revisits">
                 <button class="storyboard-zoom" type="button" aria-label="Zoom key moment 2">🔍</button>
@@ -86,7 +125,8 @@
               <span class="frame-time">0:16</span>
               <div class="frame-description">Active looking-around behavior tracks what has been seen, avoiding redundant revisits to the same regions.</div>
             </div>
-            <div class="storyboard-frame" data-target-video="teaser-video" data-youtube-id="MS10ASQFA18" data-time="24">
+            <div class="storyboard-frame" data-target-video="teaser-video" data-time="24">
+              <button class="storyboard-seek" type="button" aria-label="Play key moment at 0:24"></button>
               <div class="storyboard-image">
                 <img src="https://img.youtube.com/vi/MS10ASQFA18/3.jpg" alt="Target found, walking decisively toward it">
                 <button class="storyboard-zoom" type="button" aria-label="Zoom key moment 3">🔍</button>
@@ -129,7 +169,7 @@
       </div>
 
       <figure class="method-figure">
-        <img src="./static/images/arch-overview.png?v=20260608" alt="IntentNav architecture: frontier-based human-intent labeling and a BEV-grounded spatial-visual candidate policy">
+        <img src="./static/images/arch-overview.png?v=20260608" width="1531" height="697" loading="lazy" decoding="async" alt="IntentNav architecture: frontier-based human-intent labeling and a BEV-grounded spatial-visual candidate policy">
         <figcaption>
           <strong>IntentNav architecture.</strong>
           <strong>Left:</strong> human rollouts update a persistent BEV map, and Frontier-based Human-Intent Labeling recovers the intended frontier as candidate-level supervision by looking ahead at how frontiers evolve in the future.
@@ -200,11 +240,11 @@
         </div>
       </div>
 
-      <div class="demo-toolbar" aria-label="Demo filters">
-        <button class="filter-button" data-demo-filter="wheel">Wheeled</button>
-        <button class="filter-button" data-demo-filter="go2">Go2 Quadruped</button>
-        <button class="filter-button" data-demo-filter="human">Human / G1</button>
-        <button class="filter-button" data-demo-filter="all">All</button>
+      <div class="demo-toolbar" role="group" aria-label="Demo filters">
+        <button type="button" class="filter-button" data-demo-filter="wheel" aria-pressed="false">Wheeled</button>
+        <button type="button" class="filter-button" data-demo-filter="go2" aria-pressed="false">Go2 Quadruped</button>
+        <button type="button" class="filter-button" data-demo-filter="human" aria-pressed="false">Human / G1</button>
+        <button type="button" class="filter-button" data-demo-filter="all">All</button>
       </div>
 
       <div class="demo-grid">
@@ -365,13 +405,13 @@
     </div>
   </section>
 
-  <div class="storyboard-modal" id="storyboard-modal" aria-hidden="true">
-    <button class="storyboard-modal-close" type="button" aria-label="Close zoomed key moment">×</button>
+  <dialog class="storyboard-modal" id="storyboard-modal" aria-label="Zoomed key moment">
+    <button class="storyboard-modal-close" type="button" aria-label="Close zoomed key moment" autofocus>×</button>
     <div class="storyboard-modal-content">
       <img id="storyboard-modal-image" alt="Zoomed key moment">
       <div class="storyboard-modal-fallback">Add an image to this key moment to enable zoom preview.</div>
     </div>
-  </div>
+  </dialog>
 
   <section class="section hero is-light" id="results">
     <div class="container">
